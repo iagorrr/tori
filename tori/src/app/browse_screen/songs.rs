@@ -267,9 +267,11 @@ impl<'t> SongsPane<'t> {
             },
             SwapSongDown if self.filter.is_empty() => {
                 if let Some(i) = self.selected_index() {
-                    m3u::playlist_management::swap_song(&self.title, i)?;
-                    self.songs.swap(i, i + 1);
-                    self.select_next();
+                    if i < self.songs.len() - 1 {
+                        m3u::playlist_management::swap_song(&self.title, i)?;
+                        self.songs.swap(i, i + 1);
+                        self.select_next();
+                    }
                 }
             }
             NextSortingMode => {
