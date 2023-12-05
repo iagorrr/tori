@@ -37,6 +37,7 @@ enum ModalType {
     Play,
     AddSong { playlist: String },
     AddPlaylist,
+    RenamePlaylist { playlist: String },
     DeletePlaylist { playlist: String },
     RenameSong { playlist: String, index: usize },
     DeleteSong { playlist: String, index: usize },
@@ -53,7 +54,7 @@ enum BrowsePane {
 
 #[derive(Default)]
 pub struct BrowseScreen<'a> {
-    playlists: PlaylistsPane,
+    pub playlists: PlaylistsPane,
     songs: SongsPane<'a>,
     modal: Box<dyn Modal>,
     selected_pane: BrowsePane,
@@ -141,6 +142,29 @@ impl<'a> BrowseScreen<'a> {
                             app.notify_err(format!("Playlist names cannot contain '{}'", c));
                         }
                         Err(CreatePlaylistError::IOError(e)) => return Err(e.into()),
+                    }
+                    self.selected_pane = BrowsePane::Playlists;
+                }
+
+                // RenamePlaylist
+                (RenamePlaylist { playlist: _ }, Quit) => {
+                    self.selected_pane = BrowsePane::Playlists;
+                }
+                (RenamePlaylist { playlist }, Commit(new_name)) => {
+                    use playlist_management::RenamePlaylistError;
+                    match playlist_management::rename_playlist(playlist, &new_name) {
+                        Err(RenamePlaylistError::PlaylistAlreadyExists) => {
+                            app.notify_err(format!("Playlist '{}' already exists!", new_name));
+                        }
+                        Err(RenamePlaylistError::EmptyPlaylistName) => {
+                            app.notify_err("Playlist name cannot be empty !");
+                        }
+                        Err(RenamePlaylistError::InvalidChar(c)) => {
+                            app.notify_err(format!("Playlist name cannot contain '{}' !", c));
+                        }
+                        Err(RenamePlaylistError::IOError(e)) => return Err(e.into()),
+                        Ok(_) => self.playlists.reload_from_dir()?,
+                        _ => app.notify_err("Error while trying to rename playlist"),
                     }
                     self.selected_pane = BrowsePane::Playlists;
                 }
@@ -237,7 +261,22 @@ impl<'a> BrowseScreen<'a> {
                 BrowsePane::Modal(_) => {}
             },
             Rename => match self.selected_pane {
-                BrowsePane::Playlists => {}
+                BrowsePane::Playlists => {
+                    if let Some(playlist) = self.playlists.selected_item() {
+                        self.open_modal(
+                            "This message will be overwritten by the next input modal",
+                            ModalType::RenamePlaylist {
+                                playlist: playlist.to_owned(),
+                            },
+                        );
+
+                        let playlist_name = self.playlists.selected_item().unwrap().to_string();
+                        self.modal = Box::new(
+                            InputModal::new(" Rename playlist (esc cancels) ")
+                                .set_input(playlist_name),
+                        );
+                    }
+                }
                 BrowsePane::Songs => {
                     if let (Some(playlist), Some(index)) =
                         (self.playlists.selected_item(), self.songs.selected_index())

@@ -12,8 +12,8 @@ use crate::{
 use crossterm::event::{KeyCode, KeyEvent, MouseButton, MouseEventKind};
 use crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen};
 use crossterm::ExecutableCommand;
-use std::io;
 use std::result::Result as StdResult;
+use std::{borrow::BorrowMut, io};
 use tui::{
     layout::{self, Rect},
     style::{Color, Style},
@@ -23,7 +23,7 @@ use tui::{
 
 #[derive(Debug, Default)]
 pub struct PlaylistsPane {
-    playlists: Vec<String>,
+    pub playlists: Vec<String>,
     shown: FilteredList<ListState>,
     filter: String,
 }

@@ -20,7 +20,7 @@ pub enum Selected {
 
 #[derive(Debug)]
 pub struct AppScreen<'a> {
-    browse: BrowseScreen<'a>,
+    pub browse: BrowseScreen<'a>,
     playlist: PlaylistScreen,
     now_playing: NowPlaying,
     selected: Selected,

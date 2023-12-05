@@ -6,7 +6,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::{borrow::Cow, cell::RefCell, rc::Rc, sync::mpsc};
+use std::{borrow::Cow, cell::RefCell, ops::Deref, rc::Rc, sync::mpsc};
 use std::{
     io,
     time::{self, Duration},
@@ -50,7 +50,7 @@ pub struct App<'a> {
     next_poll_timeout: u16,
     notification: Notification<'a>,
     visualizer: Option<Visualizer>,
-    screen: Rc<RefCell<AppScreen<'a>>>,
+    pub screen: Rc<RefCell<AppScreen<'a>>>,
     quit: bool,
 }
 
@@ -104,6 +104,19 @@ impl<'a> App<'a> {
         Ok(())
     }
 
+    pub fn get_playlists(&mut self) -> Vec<String> {
+        let screen = self.screen.borrow();
+        let playlists = &screen.deref().browse.playlists.playlists.clone();
+        playlists.clone()
+    }
+
+    pub fn reload_from_dir(&mut self) {
+        // Borrow the AppScreen mutably
+        let mut screen = self.screen.borrow_mut();
+
+        // Call the reload_from_dir method on playlists
+        screen.browse.playlists.reload_from_dir();
+    }
     #[inline]
     fn render(&mut self) -> Result<()> {
         if time::Instant::now() >= self.next_render {
